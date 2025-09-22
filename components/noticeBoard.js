@@ -279,18 +279,17 @@ const SmartNoticeBoard = () => {
     (notice) => !readNotices.has(notice.id)
   ).length;
 
-  
-if (loading) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950 flex items-center justify-center">
-      <Navbar />
-      <div className="text-center text-white pt-20">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-gray-400">Checking authentication...</p>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-gray-900 to-slate-950 flex items-center justify-center">
+        <Navbar />
+        <div className="text-center text-white pt-20">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Checking authentication...</p>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   if (!user) {
     return (
@@ -318,45 +317,54 @@ if (loading) {
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-6">
+            {/* Left Section: Icon + Title */}
+            <div className="flex items-center gap-4 w-full md:w-auto">
               <div className="relative">
-                <div className="w-16 h-16 bg-gradient-to-r from-accent to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <Bell className="w-8 h-8 text-white" />
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-r from-accent to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Bell className="w-7 h-7 md:w-8 md:h-8 text-white" />
                 </div>
                 {unreadCount > 0 && (
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">
+                  <div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-white text-xs md:text-sm font-bold">
                       {unreadCount}
                     </span>
                   </div>
                 )}
               </div>
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-accent to-purple-400 bg-clip-text text-transparent">
+                <h1 className="text-xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-accent to-purple-400 bg-clip-text text-transparent">
                   Smart Notice Board
                 </h1>
-                <p className="text-gray-400 mt-1">
+                <p className="text-gray-400 mt-1 text-xs md:text-sm lg:text-base">
                   Stay updated with the latest announcements
                 </p>
               </div>
             </div>
 
-            <div className="hidden md:flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-gray-400">
+            {/* Right Section: Date, Role, Button */}
+            <div className="flex flex-col md:flex-row md:items-center md:gap-4 w-full md:w-auto">
+              {/* Date */}
+              <div className="flex items-center gap-2 text-gray-400">
                 <Calendar className="w-4 h-4" />
                 <span className="text-sm">
                   {new Date().toLocaleDateString()}
                 </span>
               </div>
-              <div className="w-px h-6 bg-gray-600" />
-              <div className="flex items-center space-x-2 text-gray-400">
+
+              {/* Divider (responsive) */}
+              <div className="w-full md:w-px h-px md:h-6 bg-gray-600 my-3 md:my-0" />
+
+              {/* Role */}
+              <div className="flex items-center gap-2 text-gray-400">
                 <User className="w-4 h-4" />
                 <span className="text-sm capitalize">{getUserRole()}</span>
               </div>
+
+              {/* Button */}
               <button
                 onClick={() => setShowScheduleModal(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white hover:shadow-lg transition-all duration-300"
+                className="mt-3 md:mt-0 w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white hover:shadow-lg transition-all duration-300 text-sm"
               >
                 <Calendar className="w-4 h-4" />
                 <span>Check Schedule</span>
