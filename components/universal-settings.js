@@ -32,7 +32,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navbar } from "./Navbar";
 
 export default function UniversalSettings() {
-  const { user ,loading } = useAuth();
+  const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
