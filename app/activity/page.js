@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import DarkVeil from "@/components/ui-block/DarkVeil";
 import {
   BookOpen,
   Brain,
@@ -27,22 +28,15 @@ import { Navbar } from "@/components/Navbar";
 
 export default function ActivityPage() {
   const [scrollY, setScrollY] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
-    const handleMouseMove = (e) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-
     window.addEventListener("scroll", handleScroll);
-    window.addEventListener("mousemove", handleMouseMove);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("mousemove", handleMouseMove);
     };
   }, []);
 
@@ -188,14 +182,6 @@ export default function ActivityPage() {
     },
   ];
 
-  const particles = [
-    { id: 1, left: 15, top: 20, delay: 0, duration: 12 },
-    { id: 2, left: 85, top: 80, delay: 3, duration: 15 },
-    { id: 3, left: 70, top: 15, delay: 6, duration: 18 },
-    { id: 4, left: 25, top: 75, delay: 9, duration: 14 },
-    { id: 5, left: 90, top: 40, delay: 12, duration: 16 },
-  ];
-
   const filteredActivities = allActivities.filter((activity) => {
     const categoryMatch =
       selectedCategory === "all" || activity.category === selectedCategory;
@@ -222,29 +208,23 @@ export default function ActivityPage() {
       {/* Background with stable elements */}
       <Navbar />
       <div className="fixed inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-800 to-green-900" />
+        <DarkVeil />
 
-        {/* Slower, more subtle gradient orbs */}
-        <div
-          className="absolute w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl"
-          style={{
-            left: mousePosition.x - 192,
-            top: mousePosition.y - 192,
-            transition: "all 1.2s ease-out",
-          }}
-        />
-
-        {/* Reduced and slower floating particles */}
         <div className="absolute inset-0 overflow-hidden">
-          {particles.map((particle) => (
+          <div className="absolute w-96 h-96 bg-gradient-to-r from-purple-500/5 to-pink-500/5 rounded-full blur-3xl top-20 left-10 animate-pulse" />
+          <div
+            className="absolute w-72 h-72 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 rounded-full blur-3xl bottom-20 right-10 animate-pulse"
+            style={{ animationDelay: "2s" }}
+          />
+          {[...Array(5)].map((_, i) => (
             <div
-              key={particle.id}
-              className="absolute w-1 h-1 bg-accent/20 rounded-full animate-float"
+              key={i}
+              className="absolute w-2 h-2 bg-accent/30 rounded-full animate-float"
               style={{
-                left: `${particle.left}%`,
-                top: `${particle.top}%`,
-                animationDelay: `${particle.delay}s`,
-                animationDuration: `${particle.duration}s`,
+                left: `${10 + i * 18}%`,
+                top: `${20 + i * 12}%`,
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: `${3 + i}s`,
               }}
             />
           ))}
@@ -256,9 +236,9 @@ export default function ActivityPage() {
         <section className="pt-16 pb-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full border border-purple-500/30 backdrop-blur-sm mb-6">
-                <Gamepad2 className="w-5 h-5 text-purple-400 mr-2" />
-                <span className="text-purple-300 font-medium">
+              <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-accent/20 to-purple-500/20 rounded-full border border-accent/30 backdrop-blur-sm mb-6">
+                <Gamepad2 className="w-5 h-5 text-accent-foreground mr-2" />
+                <span className="text-accent-foreground font-medium">
                   Interactive Learning
                 </span>
               </div>
@@ -333,11 +313,10 @@ export default function ActivityPage() {
                       <button
                         key={category.id}
                         onClick={() => setSelectedCategory(category.id)}
-                        className={`flex items-center px-4 py-2 rounded-full transition-all duration-300 ${
-                          selectedCategory === category.id
-                            ? "bg-gradient-to-r from-accent to-purple-500 text-white"
-                            : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
-                        }`}
+                        className={`flex items-center px-4 py-2 rounded-full transition-all duration-300 ${selectedCategory === category.id
+                          ? "bg-gradient-to-r from-accent to-purple-500 text-white"
+                          : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
+                          }`}
                       >
                         <category.icon className="w-4 h-4 mr-2" />
                         {category.label}
@@ -356,11 +335,10 @@ export default function ActivityPage() {
                       <button
                         key={level.id}
                         onClick={() => setSelectedLevel(level.id)}
-                        className={`px-4 py-2 rounded-full transition-all duration-300 ${
-                          selectedLevel === level.id
-                            ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
-                            : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
-                        }`}
+                        className={`px-4 py-2 rounded-full transition-all duration-300 ${selectedLevel === level.id
+                          ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white"
+                          : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
+                          }`}
                       >
                         {level.label}
                       </button>
@@ -469,8 +447,7 @@ export default function ActivityPage() {
                 <p className="text-gray-400">
                   {filteredActivities.length} activities found
                   {selectedCategory !== "all" &&
-                    ` in ${
-                      categories.find((c) => c.id === selectedCategory)?.label
+                    ` in ${categories.find((c) => c.id === selectedCategory)?.label
                     }`}
                   {selectedLevel !== "all" &&
                     ` for ${levels.find((l) => l.id === selectedLevel)?.label}`}
@@ -499,11 +476,10 @@ export default function ActivityPage() {
                           </span>
                         </div>
                         <span
-                          className={`text-xs px-2 py-1 rounded-full ${
-                            activity.type === "quiz"
-                              ? "bg-blue-500/20 text-blue-300"
-                              : "bg-green-500/20 text-green-300"
-                          }`}
+                          className={`text-xs px-2 py-1 rounded-full ${activity.type === "quiz"
+                            ? "bg-blue-500/20 text-blue-300"
+                            : "bg-green-500/20 text-green-300"
+                            }`}
                         >
                           {activity.type}
                         </span>
@@ -582,7 +558,7 @@ export default function ActivityPage() {
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 text-center">
                 Ready to Level Up Your Learning?
               </h2>
-              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+              <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto text-center">
                 Join thousands of students who are making learning fun and
                 engaging through our interactive platform.
               </p>
