@@ -1,5 +1,5 @@
 import { connectDb } from "@/lib/mongodb";
-import { verifyFirebaseToken } from "@/lib/firebase-admin";
+import { verifyFirebaseToken, getUserProfile } from "@/lib/firebase-admin";
 import { ObjectId } from "mongodb";
 import { jsonError, jsonSuccess } from "@/lib/api-response";
 
@@ -12,6 +12,18 @@ export async function PUT(request) {
 
     if (!decodedToken) {
       return jsonError("Unauthorized", 401);
+    }
+
+    // Fetch user profile from Firestore to get the user's role
+    const profile = await getUserProfile(decodedToken.uid);
+
+    if (!profile) {
+      return jsonError("User profile not found", 404);
+    }
+
+    // Restrict access to admin and teacher roles only (return 403 Forbidden otherwise)
+    if (profile.role !== "admin" && profile.role !== "teacher") {
+      return jsonError("Forbidden", 403);
     }
 
     const body = await request.json();
