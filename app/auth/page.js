@@ -23,7 +23,7 @@ import { validateForm, redirectBasedOnRole } from "@/utils/authUtils";
 import { USER_ROLES } from "@/constants/userRoles";
 
 export default function AuthPage() {
-  const [showRoleSelection, setShowRoleSelection] = useState(true);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [selectedRole, setSelectedRole] = useState("");
 
@@ -105,20 +105,23 @@ export default function AuthPage() {
         result = await loginWithEmail(email, password, selectedRole);
       } else {
         result = await signupWithEmail(email, password, selectedRole, {
-          fullName,
-          instituteName,
+            fullName,
+            instituteName,
         });
       }
 
       if (result.success) {
+        setShowRoleSelection(true);
+
         if (result.needsVerification) {
-          router.push("/verify");
+            router.push("/verify");
         } else if (result.needsProfile) {
-          router.push("/profile");
+            router.push("/profile");
         } else {
-          redirectBasedOnRole(result.userData.role, router);
+            redirectBasedOnRole(result.userData.role, router);
         }
-      } else {
+      }
+      else {
         setErrors({ submit: result.error });
       }
     } catch (err) {
