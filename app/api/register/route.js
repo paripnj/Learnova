@@ -102,7 +102,24 @@ export async function POST(req) {
       201,
     );
   } catch (error) {
-    console.error(error);
-    return jsonError(error.message || "Internal server error", 500);
+    // Log full error only in development to avoid exposing sensitive details
+    if (process.env.NODE_ENV === "development") {
+      console.error("[register-api] Registration error:", error);
+    } else {
+      // Log sanitized info for monitoring in production
+      console.error("[register-api] Registration failed:", {
+        code: error.code,
+        message: "[redacted]",
+      });
+    }
+
+    // Return generic error to client to prevent information disclosure
+    const statusCode = error.code === 11000 ? 409 : 500;
+    const clientMessage =
+      error.code === 11000
+        ? "This email is already registered"
+        : "Registration failed. Please try again later.";
+
+    return jsonError(clientMessage, statusCode);
   }
 }
