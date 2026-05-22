@@ -22,6 +22,7 @@ import {
   UserCheck,
   Sun,
   Moon,
+  Keyboard,
 } from "lucide-react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import Image from "next/image";
@@ -723,13 +724,23 @@ useEffect(() => {
                   </Link>
                 </Button>
               )}
-                       <div className="text-center">
-              <p className="text-foreground/40 text-xs">
-                © {new Date().getFullYear()} Learnova. All rights reserved.
-              </p>
+              <div className="text-center space-y-3">
+                <button
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    window.dispatchEvent(new CustomEvent("learnova:open-shortcuts"));
+                  }}
+                  className="inline-flex items-center gap-1.5 text-foreground/60 hover:text-accent transition-colors text-xs font-medium cursor-pointer"
+                >
+                  <Keyboard className="h-4 w-4 text-accent" />
+                  <span>Keyboard Shortcuts</span>
+                </button>
+                <p className="text-foreground/40 text-[10px]">
+                  © {new Date().getFullYear()} Learnova. All rights reserved.
+                </p>
+              </div>
             </div>
           </div>
-        </div>
         </>
       )}
 

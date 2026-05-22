@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpen, Mail, Phone } from "lucide-react";
+import { BookOpen, Mail, Phone, Keyboard } from "lucide-react";
 import { CONTACT_INFO } from '../constants/contact'; // Note: Adjust path if needed
 
 
@@ -64,6 +64,15 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent("learnova:open-shortcuts"))}
+                  className="flex items-center gap-1.5 text-muted-foreground hover:text-purple-300 transition-colors text-left font-normal cursor-pointer"
+                >
+                  <Keyboard className="h-4 w-4 text-purple-300" />
+                  <span>Keyboard Shortcuts</span>
+                </button>
+              </li>
             </ul>
           </div>
 
