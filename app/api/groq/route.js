@@ -5,8 +5,6 @@ import { detectInjection, sanitizeMessage, buildSecureMessages } from "@/utils/p
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MAX_MESSAGE_LENGTH = 2000;
-const SYSTEM_PROMPT = "You are Nova, an AI assistant for the Learnova platform. Your primary role is to help students with their educational needs, answer questions related to their courses, and provide guidance on Learnova's features.";
-
 const SYSTEM_PROMPT =
   "You are Nova, the friendly AI assistant for Learnova - a Smart Student Engagement Ecosystem. You help with questions about attendance automation, smart activities, security features, analytics, and educational technology. Always be helpful, informative, and encouraging. Keep responses concise but comprehensive.";
 
