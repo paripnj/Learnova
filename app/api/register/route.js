@@ -182,6 +182,7 @@ export async function POST(req) {
       rollNo,
       email,
       image: blob.url,
+      firebaseUid: decodedToken.uid,
     };
     const result = await users.insertOne(user);
 
