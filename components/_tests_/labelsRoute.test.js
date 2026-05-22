@@ -94,7 +94,7 @@ describe("GET /api/labels - Security & Authentication Tests", () => {
     expect(connectDb).not.toHaveBeenCalled();
   });
 
-  test("returns projected labels list for authenticated users bounded to 50 records (200)", async () => {
+  test("returns projected labels list without image URLs for authenticated users bounded to 50 records (200)", async () => {
     const mockUsers = [
       { name: "Alice", email: "alice@domain.com", image: "https://example.com/alice.jpg", sensitiveField: "secret" },
       { name: "Bob", email: "bob@domain.com", image: "https://example.com/bob.jpg", sensitiveField: "secret" },
@@ -107,9 +107,12 @@ describe("GET /api/labels - Security & Authentication Tests", () => {
 
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
-    expect(body.data).toEqual(mockUsers);
+    expect(body.data).toEqual([
+      { name: "Alice", email: "alice@domain.com", sensitiveField: "secret", hasImage: true },
+      { name: "Bob", email: "bob@domain.com", sensitiveField: "secret", hasImage: true },
+    ]);
     expect(connectDb).toHaveBeenCalled();
-    expect(mockFind).toHaveBeenCalledWith({}, { projection: { _id: 0, name: 1, email: 1, image: 1 } });
+    expect(mockFind).toHaveBeenCalledWith({}, { projection: { _id: 1, name: 1, email: 1, image: 1 } });
     expect(mockLimit).toHaveBeenCalledWith(50);
   });
 
@@ -129,7 +132,7 @@ describe("GET /api/labels - Security & Authentication Tests", () => {
           { email: { $regex: "alice", $options: "i" } },
         ],
       },
-      { projection: { _id: 0, name: 1, email: 1, image: 1 } }
+      { projection: { _id: 1, name: 1, email: 1, image: 1 } }
     );
     expect(mockLimit).toHaveBeenCalledWith(50);
   });

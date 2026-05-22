@@ -4,7 +4,16 @@ import { useState, useRef, useEffect } from "react";
 import { analytics, db } from "@/lib/firebaseConfig";
 import { logEvent } from "firebase/analytics";
 import Image from "next/image";
-import { doc, getDoc, collection, query, where, getDocs, orderBy, limit  } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 import { Button } from "@/components/ui/button";
 import {
   User,
@@ -49,7 +58,7 @@ export default function UniversalProfile() {
 
   // Role state fetched from Firestore
   const [role, setRole] = useState("student");
-  const [userData,setUserData] = useState(null);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -60,10 +69,10 @@ export default function UniversalProfile() {
         if (userSnap.exists()) {
           const data = userSnap.data();
           setUserData(data); //to save the full profile data
-          setRole(data.role || "student"); 
+          setRole(data.role || "student");
         }
       } catch (error) {
-        console.error("Error fetching user role:", error);
+        // Silently handle error fetching user role
       }
     };
     fetchUserData();
@@ -117,15 +126,17 @@ export default function UniversalProfile() {
 
   const getMemberSince = () => {
     if (!userData?.createdAt) return "Just joined";
-   
+
     //converting firestore timstamp to JS Dates
-    const date = userData.createdAt?.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt);
+    const date = userData.createdAt?.toDate
+      ? userData.createdAt.toDate()
+      : new Date(userData.createdAt);
 
     return new Intl.DateTimeFormat("en-US", {
       month: "long",
       year: "numeric",
     }).format(date);
-  }
+  };
 
   const getRoleConfig = () => {
     const configs = {
@@ -689,9 +700,15 @@ export default function UniversalProfile() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
           {roleConfig.stats.map((stat, index) => {
             // Retrieve dynamic stat value from database if available, else default to "0"
-            const realValue = stats && stats[stat.label] !== undefined ? stats[stat.label] : "0";
+            const realValue =
+              stats && stats[stat.label] !== undefined
+                ? stats[stat.label]
+                : "0";
             // Retrieve dynamic change indicator if available, else show default fallback
-            const realChange = stats && stats[`${stat.label}_change`] !== undefined ? stats[`${stat.label}_change`] : "New";
+            const realChange =
+              stats && stats[`${stat.label}_change`] !== undefined
+                ? stats[`${stat.label}_change`]
+                : "New";
 
             return (
               <div
@@ -798,8 +815,8 @@ export default function UniversalProfile() {
                                 item.type === "course"
                                   ? "bg-blue-400"
                                   : item.type === "achievement"
-                                  ? "bg-yellow-400"
-                                  : "bg-green-400"
+                                    ? "bg-yellow-400"
+                                    : "bg-green-400"
                               }`}
                             />
                             <div>
@@ -811,7 +828,7 @@ export default function UniversalProfile() {
                               </p>
                             </div>
                           </div>
-                          
+
                           {/* Render progress bar only if progress property is available */}
                           {item.progress !== undefined && (
                             <div className="flex items-center space-x-3">
@@ -835,7 +852,9 @@ export default function UniversalProfile() {
                     ) : (
                       // Display fallback state when user has no recent activity
                       <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
-                        <p className="text-white/60">No recent activity yet. Start exploring courses!</p>
+                        <p className="text-white/60">
+                          No recent activity yet. Start exploring courses!
+                        </p>
                       </div>
                     )}
                   </div>

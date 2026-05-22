@@ -58,17 +58,17 @@ export default function NotFound() {
   return (
     <>
       <Navbar />
-      <div className="fixed inset-0 -z-10">
+      <div className="fixed inset-0 -z-10 bg-slate-950">
         <DarkVeil />
         <div
-          className="absolute h-96 w-96 rounded-full bg-gradient-to-r from-purple-500/10 to-pink-500/10 blur-3xl"
+          className="absolute h-96 w-96 rounded-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 blur-3xl pointer-events-none"
           style={mouseOrbStyle}
         />
-        <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
           {PARTICLES_DATA.map((particle) => (
             <div
               key={particle.id}
-              className="absolute h-1 w-1 rounded-full bg-accent/20 animate-float"
+              className="absolute h-1.5 w-1.5 rounded-full bg-indigo-500/30 animate-float"
               style={{
                 left: `${particle.left}%`,
                 top: `${particle.top}%`,
@@ -80,21 +80,25 @@ export default function NotFound() {
         </div>
       </div>
 
-      <main className="relative z-10 flex min-h-screen items-center justify-center px-6 py-24 text-center text-white">
-        <div className="w-full max-w-2xl space-y-6">
-          <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tight text-white">
-            404
-          </h1>
-          <p className="text-lg sm:text-xl text-slate-300">
-            The page you're looking for doesn't exist or may have moved. Check
-            the URL or head back to the homepage.
-          </p>
+      <main className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 py-24 text-center">
+        <div className="w-full max-w-2xl bg-slate-900/60 backdrop-blur-2xl border border-white/10 rounded-3xl p-8 sm:p-12 md:p-16 shadow-2xl shadow-purple-500/5 space-y-8 transition-all duration-500 hover:border-purple-500/20">
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-purple-400">
+                404 - Page Not Found
+              </span>
+            </h1>
+            <p className="text-slate-400 font-medium text-base sm:text-lg md:text-xl max-w-md mx-auto leading-relaxed">
+              The page you're looking for doesn't exist or may have moved. Check the URL or head back to the homepage.
+            </p>
+          </div>
+
           <div className="flex items-center justify-center">
             <Link
               href="/"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-accent to-purple-500 px-8 py-4 text-sm font-semibold text-white shadow-xl shadow-accent/25 transition-all duration-500 hover:scale-[1.02]"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 px-8 py-4 text-base font-semibold text-white shadow-xl shadow-indigo-600/25 transition-all duration-300 hover:scale-105 hover:shadow-indigo-600/40 hover:brightness-110 active:scale-95"
             >
-              <Home className="h-4 w-4" />
+              <Home className="h-5 w-5" />
               Go back home
             </Link>
           </div>
@@ -104,7 +108,7 @@ export default function NotFound() {
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
-          50% { transform: translateY(-15px) rotate(90deg); opacity: 0.8; }
+          50% { transform: translateY(-20px) rotate(90deg); opacity: 0.8; }
         }
         .animate-float { animation: float ease-in-out infinite; }
       `}</style>

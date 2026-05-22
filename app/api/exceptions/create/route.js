@@ -10,12 +10,9 @@ export async function POST(request) {
     const authResult = await verifyFirebaseToken(token);
 
     if (!authResult.valid) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-          reason: authResult.reason,
-        },
-        { status: 401 }
+      return jsonError(
+        { message: "Unauthorized", reason: authResult.reason },
+        401
       );
     }
 
@@ -57,7 +54,6 @@ export async function POST(request) {
       201,
     );
   } catch (error) {
-    console.error("Exception creation error:", error);
     return jsonError("Internal server error", 500);
   }
 }

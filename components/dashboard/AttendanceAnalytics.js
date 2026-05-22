@@ -27,21 +27,23 @@ const AttendanceAnalytics = ({ userId }) => {
         setLoading(true);
         const attendanceQuery = query(
           collection(db, "attendance_records"),
-          where("userId", "==", userId)
+          where("userId", "==", userId),
         );
-        
+
         const snapshot = await getDocs(attendanceQuery);
         const totalPresent = snapshot.size;
         const totalClasses = getWeekdaysSinceYearStart();
-        
+
         // Prevent division by zero
         const safeTotalClasses = totalClasses > 0 ? totalClasses : 1;
         let totalAbsent = safeTotalClasses - totalPresent;
-        
+
         // Ensure totalAbsent is never negative if they attended more times than expected
         if (totalAbsent < 0) totalAbsent = 0;
 
-        const attendancePercentage = Math.round((totalPresent / safeTotalClasses) * 100);
+        const attendancePercentage = Math.round(
+          (totalPresent / safeTotalClasses) * 100,
+        );
 
         setStats({
           totalPresent,
@@ -50,7 +52,6 @@ const AttendanceAnalytics = ({ userId }) => {
           percentage: Math.min(100, attendancePercentage),
         });
       } catch (err) {
-        console.error("Error fetching attendance analytics:", err);
         setError("Failed to load attendance data.");
       } finally {
         setLoading(false);
@@ -107,8 +108,12 @@ const AttendanceAnalytics = ({ userId }) => {
             <CheckCircle className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Present</p>
-            <p className="text-lg font-bold text-gray-800 dark:text-white">{stats.totalPresent}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Present
+            </p>
+            <p className="text-lg font-bold text-gray-800 dark:text-white">
+              {stats.totalPresent}
+            </p>
           </div>
         </div>
 
@@ -117,20 +122,28 @@ const AttendanceAnalytics = ({ userId }) => {
             <AlertCircle className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Absent</p>
-            <p className="text-lg font-bold text-gray-800 dark:text-white">{stats.totalAbsent}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              Absent
+            </p>
+            <p className="text-lg font-bold text-gray-800 dark:text-white">
+              {stats.totalAbsent}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
-          <span className="text-gray-500 dark:text-gray-400 font-medium">Progress</span>
-          <span className="text-gray-700 dark:text-gray-300 font-medium">{stats.totalPresent} / {stats.totalClasses} Classes</span>
+          <span className="text-gray-500 dark:text-gray-400 font-medium">
+            Progress
+          </span>
+          <span className="text-gray-700 dark:text-gray-300 font-medium">
+            {stats.totalPresent} / {stats.totalClasses} Classes
+          </span>
         </div>
         <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-          <div 
-            className="bg-indigo-600 dark:bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out" 
+          <div
+            className="bg-indigo-600 dark:bg-indigo-500 h-2.5 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${stats.percentage}%` }}
           ></div>
         </div>

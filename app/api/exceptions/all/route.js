@@ -1,6 +1,17 @@
+import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { verifyFirebaseToken, getUserProfile } from "@/lib/firebase-admin";
 import { jsonError, jsonSuccess } from "@/lib/api-response";
+import { escapeRegex, sanitizeSortField } from "@/utils/mongoUtils";
+
+const ALLOWED_SORT_FIELDS = new Set([
+  "createdAt",
+  "updatedAt",
+  "status",
+  "date",
+  "studentEmail",
+  "reason",
+]);
 
 export async function GET(request) {
   try {
@@ -10,17 +21,13 @@ export async function GET(request) {
     const authResult = await verifyFirebaseToken(token);
 
     if (!authResult.valid) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-          reason: authResult.reason,
-        },
-        { status: 401 }
+      return jsonError(
+        { message: "Unauthorized", reason: authResult.reason },
+        401
       );
     }
 
     const decodedToken = authResult.decodedToken;
-
 
     // Fetch user profile
     const profile = await getUserProfile(decodedToken.uid);
@@ -30,41 +37,34 @@ export async function GET(request) {
     }
 
     // Restrict access
-    if (
-      profile.role !== "admin" &&
-      profile.role !== "teacher"
-    ) {
+    if (profile.role !== "admin" && profile.role !== "teacher") {
       return jsonError("Forbidden", 403);
     }
 
     const { searchParams } = new URL(request.url);
 
     // Pagination
-    const page = Math.max(
-      1,
-      parseInt(searchParams.get("page") || "1", 10)
-    );
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
 
     const limit = Math.min(
       100,
-      Math.max(
-        1,
-        parseInt(searchParams.get("limit") || "20", 10)
-      )
+      Math.max(1, parseInt(searchParams.get("limit") || "20", 10)),
     );
 
     const skip = (page - 1) * limit;
 
-    // Search
-    const search = searchParams.get("search") || "";
+    // Search — escape metacharacters and cap length to prevent ReDoS
+    const rawSearch = searchParams.get("search") || "";
+    const search = escapeRegex(rawSearch);
 
-    // Sorting
-    const sortBy = searchParams.get("sortBy") || "createdAt";
+    // Sorting — validate against an explicit allowlist to prevent field-name injection
+    const sortBy = sanitizeSortField(
+      searchParams.get("sortBy"),
+      ALLOWED_SORT_FIELDS,
+      "createdAt"
+    );
 
-    const sortOrder =
-      searchParams.get("sortOrder") === "asc"
-        ? 1
-        : -1;
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
     const db = await connectDb();
     const collection = db.collection("exceptions");
@@ -119,10 +119,9 @@ export async function GET(request) {
           hasNextPage: page < totalPages,
         },
       },
-      200
+      200,
     );
   } catch (error) {
-    console.error("Exception fetch error:", error);
     return jsonError("Internal server error", 500);
   }
 }

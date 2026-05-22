@@ -14,9 +14,15 @@ import toast from "react-hot-toast";
 const MIN_CONFIDENCE_TO_RECORD = 60;
 
 export default function FaceRecognizer({ authUser }) {
+  const isMounted = useRef(true);
+  const retryStreamRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const { labels: fetchedLabels, loading: labelsLoading, error } = useLabels(authUser);
+  const {
+    labels: fetchedLabels,
+    loading: labelsLoading,
+    error,
+  } = useLabels(authUser);
 
   const [message, setMessage] = useState("Loading models...");
   const [finished, setFinished] = useState(false);
@@ -32,8 +38,12 @@ export default function FaceRecognizer({ authUser }) {
 
   const handleRetry = async () => {
     try {
+      if (retryStreamRef.current) {
+        retryStreamRef.current.getTracks().forEach(t => t.stop());
+      }
       // Try accessing the camera
       const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+      retryStreamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
@@ -49,7 +59,7 @@ export default function FaceRecognizer({ authUser }) {
       // Handle permanent denial gracefully
       if (err.name === "NotAllowedError") {
         setMessage(
-          "Camera access is blocked! To enable it:\n1. Open your browser settings.\n2. Go to 'Site Settings'.\n3. Find 'Camera' permissions.\n4. Allow access for this site."
+          "Camera access is blocked! To enable it:\n1. Open your browser settings.\n2. Go to 'Site Settings'.\n3. Find 'Camera' permissions.\n4. Allow access for this site.",
         );
         setFinished(true);
       } else {
@@ -73,9 +83,8 @@ export default function FaceRecognizer({ authUser }) {
         setMessage("Models loaded ✅ Starting webcam...");
         startVideo();
       } catch (err) {
-        console.error("Model load error:", err);
         setMessage(
-          "Failed to load models. Please check your network connection."
+          "Failed to load models. Please check your network connection.",
         );
         setIsLoading(false);
         setFinished(true);
@@ -95,10 +104,9 @@ export default function FaceRecognizer({ authUser }) {
           };
         }
       } catch (err) {
-        console.error("Webcam error:", err);
         if (err.name === "NotAllowedError") {
           setMessage(
-            `Camera access is blocked! To enable it: \n 1. Open your browser settings.\n2. Go to 'Site Settings'.\n3. Find 'Camera' permissions.\n4. Allow access for this site.`
+            `Camera access is blocked! To enable it: \n 1. Open your browser settings.\n2. Go to 'Site Settings'.\n3. Find 'Camera' permissions.\n4. Allow access for this site.`,
           );
         } else {
           setMessage("Cannot access webcam ❌. Please try again.");
@@ -111,6 +119,11 @@ export default function FaceRecognizer({ authUser }) {
     if (!labelsLoading && !error && labels.length > 0) loadModels();
 
     return () => {
+      isMounted.current = false;
+      if (retryStreamRef.current) { 
+        retryStreamRef.current.getTracks().forEach(t => t.stop()); 
+        retryStreamRef.current = null; 
+      }
       if (stream) stream.getTracks().forEach((track) => track.stop());
       if (videoRef.current) videoRef.current.srcObject = null;
     };
@@ -130,7 +143,19 @@ export default function FaceRecognizer({ authUser }) {
       await Promise.all(
         labels.map(async (student) => {
           try {
-            const img = await faceapi.fetchImage(student.image); // full URL from MongoDB
+            const token = await authUser?.getIdToken();
+            const res = await fetch(`/api/images?id=${student._id}`, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
+
+            if (!res.ok) {
+              console.warn(`Could not load image for ${student.name}: ${res.status}`);
+              return null;
+            }
+
+            const blob = await res.blob();
+            const img = await faceapi.env.getEnv().createImageFromBlob(blob);
+
             const detection = await faceapi
               .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
               .withFaceLandmarks()
@@ -142,16 +167,18 @@ export default function FaceRecognizer({ authUser }) {
               ]);
             }
           } catch {
-            console.warn(`Image not found: ${student.name}`);
+            // Image not found for student
           }
           return null;
-        })
+        }),
       )
     ).filter(Boolean);
 
     if (!labeledFaceDescriptors.length) {
-      setMessage("No labeled faces found ❌");
-      setFinished(true);
+      if (isMounted.current) {
+        setMessage("No labeled faces found ❌");
+        setFinished(true);
+      }
       return;
     }
 
@@ -196,25 +223,31 @@ export default function FaceRecognizer({ authUser }) {
       ctx.fillText(
         `${label} (${confidenceScore}%)`,
         box.x + box.width / 2,
-        box.y - 8
+        box.y - 8,
       );
  
-      setMessage(`Detected: ${label}`);
-      setConfidence(confidenceScore);
+      if (isMounted.current) {
+        setMessage(`Detected: ${label}`);
+        setConfidence(confidenceScore);
 
-      if (label !== "Unknown") {
-        const person = labels.find((l) => l.name === label);
-        setDetectedPerson(person || null);
-      } else {
-        setDetectedPerson(null);
+        if (label !== "Unknown") {
+          const person = labels.find((l) => l.name === label);
+          setDetectedPerson(person || null);
+        } else {
+          setDetectedPerson(null);
+        }
       }
     } else {
-      setMessage("No face detected");
-      setDetectedPerson(null);
-      setConfidence(0);
+      if (isMounted.current) {
+        setMessage("No face detected");
+        setDetectedPerson(null);
+        setConfidence(0);
+      }
     }
 
-    setFinished(true);
+    if (isMounted.current) {
+      setFinished(true);
+    }
   };
 
   useEffect(() => {
@@ -239,7 +272,9 @@ export default function FaceRecognizer({ authUser }) {
 
       if (detectedEmail && userEmail && detectedEmail !== userEmail) {
         setAttendanceState("mismatch");
-        setMessage("Face recognized but does not match your signed-in account.");
+        setMessage(
+          "Face recognized but does not match your signed-in account.",
+        );
         return;
       }
 
@@ -253,26 +288,14 @@ export default function FaceRecognizer({ authUser }) {
           confidenceScore: confidence,
         });
 
-        setAttendanceState(result.alreadyRecorded ? "already-recorded" : "saved");
-
-        if (result.newRate !== undefined && result.newRate < 75) {
-          const alertSent = await checkAndSendAttendanceAlert(
-            authUser.uid,
-            detectedPerson.name,
-            detectedPerson.email || authUser.email,
-            result.newRate
-          );
-          if (alertSent) {
-            toast.error(`Warning: Your attendance is ${result.newRate}%. An alert email has been sent.`, {
-              icon: "⚠️",
-              duration: 5000,
-            });
-          }
-        }
+        setAttendanceState(
+          result.alreadyRecorded ? "already-recorded" : "saved",
+        );
       } catch (err) {
-        console.error("Attendance save error:", err);
         setAttendanceState("error");
-        setMessage(err.message || "Could not save attendance. Please try again.");
+        setMessage(
+          err.message || "Could not save attendance. Please try again.",
+        );
       }
     };
 

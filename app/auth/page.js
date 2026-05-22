@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { analytics } from "@/lib/firebaseConfig";
 import { logEvent } from "firebase/analytics";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Components
 import { Navbar } from "@/components/Navbar";
@@ -24,8 +24,19 @@ import { validateForm, redirectBasedOnRole } from "@/utils/authUtils";
 import { USER_ROLES } from "@/constants/userRoles";
 
 export default function AuthPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthPageContent />
+    </Suspense>
+  );
+}
+
+function AuthPageContent() {
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
+
   const [showRoleSelection, setShowRoleSelection] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(mode !== "signup");
   const [selectedRole, setSelectedRole] = useState("");
 
   // Form state
@@ -41,6 +52,11 @@ export default function AuthPage() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState("");
 
   const router = useRouter();
+
+  // Sync isLogin state when the URL query parameter changes
+  useEffect(() => {
+    setIsLogin(mode !== "signup");
+  }, [mode]);
 
   useEffect(() => {
     if (analytics) {
@@ -88,7 +104,7 @@ export default function AuthPage() {
 
     const { isValid, errors: validationErrors } = validateForm(
       formData,
-      isLogin
+      isLogin,
     );
 
     if (!isValid) {
@@ -106,8 +122,8 @@ export default function AuthPage() {
         result = await loginWithEmail(email, password, selectedRole);
       } else {
         result = await signupWithEmail(email, password, selectedRole, {
-            fullName,
-            instituteName,
+          fullName,
+          instituteName,
         });
       }
 
@@ -120,15 +136,18 @@ export default function AuthPage() {
         setShowRoleSelection(true);
         router.push("/profile");
       } else if (result.success) {
-        toast.success(isLogin ? "Successfully logged in!" : "Account created successfully!");
+        toast.success(
+          isLogin ? "Successfully logged in!" : "Account created successfully!",
+        );
         setShowRoleSelection(true);
         redirectBasedOnRole(result.userData.role, router);
       } else {
         toast.error(result.error || "Authentication failed. Please try again.");
-        setErrors({ submit: result.error || "Something went wrong. Please try again." });
+        setErrors({
+          submit: result.error || "Something went wrong. Please try again.",
+        });
       }
     } catch (err) {
-      console.error("Auth error:", err);
       toast.error("An unexpected error occurred. Please try again.");
       setErrors({ submit: "An unexpected error occurred. Please try again." });
     } finally {
@@ -177,7 +196,6 @@ export default function AuthPage() {
         setErrors({ submit: result.error });
       }
     } catch (err) {
-      console.error("❌ Google auth error:", err);
       toast.error("An unexpected error occurred. Please try again.");
       setErrors({ submit: "An unexpected error occurred. Please try again." });
     } finally {
@@ -203,14 +221,15 @@ export default function AuthPage() {
       const result = await resetPassword(emailToReset);
 
       if (result.success) {
-        toast.success("Password reset email sent! Check your inbox and spam folder.");
+        toast.success(
+          "Password reset email sent! Check your inbox and spam folder.",
+        );
         setShowForgotPassword(false);
         setForgotPasswordEmail("");
       } else {
         setErrors({ forgotEmail: result.error });
       }
     } catch (err) {
-      console.error("Password reset error:", err);
       setErrors({
         forgotEmail: "Failed to send reset email. Please try again.",
       });

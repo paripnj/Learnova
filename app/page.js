@@ -662,7 +662,7 @@ export default function AboutPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <ActionButton href="/auth">
+                <ActionButton href="/auth?mode=signup">
                   Get Started Today
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                 </ActionButton>

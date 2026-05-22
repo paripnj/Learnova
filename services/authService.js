@@ -7,7 +7,6 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   signOut,
-  
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import {
@@ -36,7 +35,7 @@ export const loginWithEmail = async (email, password, selectedRole) => {
     const userCredential = await signInWithEmailAndPassword(
       auth,
       email.trim(),
-      password
+      password,
     );
     const user = userCredential.user;
 
@@ -72,7 +71,6 @@ export const loginWithEmail = async (email, password, selectedRole) => {
       return { success: false, needsProfile: true };
     }
   } catch (err) {
-    console.error("Login error:", err);
     return {
       success: false,
       error:
@@ -97,7 +95,7 @@ export const signupWithEmail = async (
   email,
   password,
   selectedRole,
-  additionalData
+  additionalData,
 ) => {
   try {
     if (!auth || !db) {
@@ -112,7 +110,7 @@ export const signupWithEmail = async (
     const userCredential = await createUserWithEmailAndPassword(
       auth,
       email.trim(),
-      password
+      password,
     );
     const user = userCredential.user;
 
@@ -124,7 +122,6 @@ export const signupWithEmail = async (
 
     return { success: true, needsVerification: true };
   } catch (err) {
-    console.error("Signup error:", err);
     return {
       success: false,
       error:
@@ -147,7 +144,7 @@ export const signupWithEmail = async (
 export const loginWithGoogle = async (
   selectedRole,
   isLogin,
-  additionalData = {}
+  additionalData = {},
 ) => {
   try {
     if (!auth || !db) {
@@ -218,7 +215,6 @@ export const loginWithGoogle = async (
 
     return { success: true, userData: userData || { role: selectedRole } };
   } catch (err) {
-    console.error("Google auth error:", err);
     return {
       success: false,
       error:
@@ -245,7 +241,6 @@ export const resetPassword = async (email) => {
     await sendPasswordResetEmail(auth, email);
     return { success: true };
   } catch (err) {
-    console.error("Password reset error:", err);
     return {
       success: false,
       error:

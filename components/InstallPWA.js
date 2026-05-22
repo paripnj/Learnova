@@ -15,11 +15,9 @@ export default function InstallPWA() {
     if (typeof window === "undefined") return;
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js", { scope: "/" })
-        .catch((error) => {
-          console.error("Service Worker registration failed:", error);
-        });
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
+        // Service Worker registration failed silently
+      });
     }
 
     if (window.matchMedia("(display-mode: standalone)").matches) {
@@ -33,7 +31,7 @@ export default function InstallPWA() {
         return;
       }
     } catch (error) {
-      console.error("Failed to read localStorage:", error);
+      // Silently handle localStorage errors
     }
 
     const handler = (e) => {
@@ -65,7 +63,7 @@ export default function InstallPWA() {
         setInstallPrompt(null);
       }
     } catch (error) {
-      console.error("Error during installation:", error);
+      // Silently handle installation errors
     }
   };
 
@@ -76,7 +74,7 @@ export default function InstallPWA() {
         localStorage.setItem("pwa-install-dismissed", "true");
       }
     } catch (error) {
-      console.error("Failed to save preference:", error);
+      // Silently handle localStorage errors
     }
   };
 

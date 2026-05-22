@@ -59,6 +59,12 @@ export default function ActivityPage() {
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const [stats, setStats] = useState({
+    games: 0,
+    students: 0,
+    rating: 0,
+  });
+
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     const handleMouseMove = (e) => {
@@ -72,6 +78,38 @@ export default function ActivityPage() {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("mousemove", handleMouseMove);
     };
+  }, []);
+
+  useEffect(() => {
+    const duration = 2000;
+    const frameRate = 30;
+    const totalFrames = duration / frameRate;
+
+    let frame = 0;
+
+    const counter = setInterval(() => {
+      frame++;
+
+      const progress = frame / totalFrames;
+
+      setStats({
+        games: Math.floor(250 * progress),
+        students: Math.floor(50000 * progress),
+        rating: (4.7 * progress).toFixed(1),
+      });
+
+      if (frame >= totalFrames) {
+        clearInterval(counter);
+
+        setStats({
+          games: 250,
+          students: 50000,
+          rating: "4.7",
+        });
+      }
+    }, frameRate);
+
+    return () => clearInterval(counter);
   }, []);
 
   const categories = [
@@ -231,28 +269,28 @@ export default function ActivityPage() {
   });
 
   const handleStartActivity = async (activity) => {
-  try {
-    // Only log if user exists
-    if (user) {
-      await logActivity(user.uid, {
-        title: activity.title,
-        type: activity.type || "course",
-        progress: 0,
-      });
+    try {
+      // Only log if user exists
+      if (user) {
+        await logActivity(user.uid, {
+          title: activity.title,
+          type: activity.type || "course",
+          progress: 0,
+        });
 
-      // Increment statistic
-      await updateUserStat(user.uid, "Courses Enrolled", 1);
+        // Increment statistic
+        await updateUserStat(user.uid, "Courses Enrolled", 1);
+      }
+
+      // Open activity page
+      router.push(`/activity/${activity.id}`);
+    } catch (error) {
+      console.error("Error starting activity:", error);
+
+      // Still open page even if logging fails
+      router.push(`/activity/${activity.id}`);
     }
-
-    // Open activity page
-    router.push(`/activity/${activity.id}`);
-  } catch (error) {
-    console.error("Error starting activity:", error);
-
-    // Still open page even if logging fails
-    router.push(`/activity/${activity.id}`);
-  }
-};
+  };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -345,9 +383,21 @@ export default function ActivityPage() {
             <Reveal delay={0.4}>
               <div className="flex flex-wrap justify-center gap-6">
                 {[
-                  { label: "Active Games", value: "250+", icon: Gamepad2 },
-                  { label: "Students Playing", value: "50K+", icon: Users },
-                  { label: "Avg Rating", value: "4.7", icon: Star },
+                  {
+                    label: "Active Games",
+                    value: `${stats.games}+`,
+                    icon: Gamepad2,
+                  },
+                  {
+                    label: "Students Playing",
+                    value: `${(stats.students / 1000).toFixed(0)}K+`,
+                    icon: Users,
+                  },
+                  {
+                    label: "Avg Rating",
+                    value: stats.rating,
+                    icon: Star,
+                  },
                 ].map((stat, index) => (
                   <div
                     key={index}
@@ -430,7 +480,7 @@ export default function ActivityPage() {
                         </div>
                         <span
                           className={`text-sm font-medium ${getDifficultyColor(
-                            activity.difficulty
+                            activity.difficulty,
                           )}`}
                         >
                           {activity.difficulty}
@@ -487,10 +537,11 @@ export default function ActivityPage() {
                         <button
                           key={category.id}
                           onClick={() => setSelectedCategory(category.id)}
-                          className={`flex items-center justify-center px-3 py-2 min-h-[42px] text-xs sm:text-sm rounded-full whitespace-nowrap transition-all duration-300 ${selectedCategory === category.id
-                            ? "bg-gradient-to-r from-accent to-purple-500 text-white shadow-lg shadow-accent/25"
-                            : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
-                            }`}
+                          className={`flex items-center justify-center px-3 py-2 min-h-[42px] text-xs sm:text-sm rounded-full whitespace-nowrap transition-all duration-300 ${
+                            selectedCategory === category.id
+                              ? "bg-gradient-to-r from-accent to-purple-500 text-white shadow-lg shadow-accent/25"
+                              : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
+                          }`}
                         >
                           <category.icon className="w-4 h-4 mr-2" />
                           {category.label}
@@ -509,10 +560,11 @@ export default function ActivityPage() {
                         <button
                           key={level.id}
                           onClick={() => setSelectedLevel(level.id)}
-                          className={`px-4 py-2 rounded-full transition-all duration-300 text-sm ${selectedLevel === level.id
-                            ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25"
-                            : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
-                            }`}
+                          className={`px-4 py-2 rounded-full transition-all duration-300 text-sm ${
+                            selectedLevel === level.id
+                              ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/25"
+                              : "bg-black/30 text-gray-300 hover:bg-black/50 hover:text-white border border-white/10"
+                          }`}
                         >
                           {level.label}
                         </button>
@@ -531,12 +583,13 @@ export default function ActivityPage() {
             <Reveal delay={0.1}>
               <div className="mb-12">
                 <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-                    All Activities
-                  </h2>
+                  All Activities
+                </h2>
                 <p className="text-gray-400">
                   {filteredActivities.length} activities found
                   {selectedCategory !== "all" &&
-                    ` in ${categories.find((c) => c.id === selectedCategory)?.label
+                    ` in ${
+                      categories.find((c) => c.id === selectedCategory)?.label
                     }`}
                   {selectedLevel !== "all" &&
                     ` for ${levels.find((l) => l.id === selectedLevel)?.label}`}
@@ -563,10 +616,11 @@ export default function ActivityPage() {
                             </span>
                           </div>
                           <span
-                            className={`text-xs px-2 py-1 rounded-full font-medium ${activity.type === "quiz"
-                              ? "bg-blue-500/20 text-blue-300"
-                              : "bg-green-500/20 text-green-300"
-                              }`}
+                            className={`text-xs px-2 py-1 rounded-full font-medium ${
+                              activity.type === "quiz"
+                                ? "bg-blue-500/20 text-blue-300"
+                                : "bg-green-500/20 text-green-300"
+                            }`}
                           >
                             {activity.type}
                           </span>
@@ -595,7 +649,7 @@ export default function ActivityPage() {
                         </div>
                         <span
                           className={`font-medium ${getDifficultyColor(
-                            activity.difficulty
+                            activity.difficulty,
                           )}`}
                         >
                           {activity.difficulty}

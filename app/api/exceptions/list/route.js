@@ -1,27 +1,31 @@
-import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { verifyFirebaseToken, getUserProfile } from "@/lib/firebase-admin";
 import { jsonError, jsonSuccess } from "@/lib/api-response";
+import { escapeRegex, sanitizeSortField } from "@/utils/mongoUtils";
+
+const ALLOWED_SORT_FIELDS = new Set([
+  "createdAt",
+  "updatedAt",
+  "status",
+  "date",
+  "studentEmail",
+  "reason",
+]);
 
 export async function GET(request) {
   try {
     const authorization = request.headers.get("authorization");
     const token = authorization?.split(" ")[1];
-
     const authResult = await verifyFirebaseToken(token);
 
     if (!authResult.valid) {
-      return NextResponse.json(
-        {
-          error: "Unauthorized",
-          reason: authResult.reason,
-        },
-        { status: 401 }
+      return jsonError(
+        { message: "Unauthorized", reason: authResult.reason },
+        401
       );
     }
 
     const decodedToken = authResult.decodedToken;
-
     const profile = await getUserProfile(decodedToken.uid);
 
     if (!profile) {
@@ -31,26 +35,26 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
 
     // Pagination
-    const page = Math.max(
-      1,
-      parseInt(searchParams.get("page") || "1", 10)
-    );
-
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
     const limit = Math.min(
       100,
       Math.max(1, parseInt(searchParams.get("limit") || "10", 10))
     );
-
-    const skip = (page - 1) * limit;
 
     // Search
     const search = searchParams.get("search") || "";
 
     // Sorting
     const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? 1 : -1;
 
-    const sortOrder =
-      searchParams.get("sortOrder") === "asc" ? 1 : -1;
+    // Validation
+    if (page < 1 || limit < 1) {
+      return jsonError("Page and limit must be greater than 0", 400);
+    }
+
+    // FIX: Removed duplicate `const skip` declaration — only declared once here
+    const skip = (page - 1) * limit;
 
     const db = await connectDb();
     const collection = db.collection("exceptions");
@@ -63,10 +67,7 @@ export async function GET(request) {
     // Role-based filtering
     if (profile.role === "student") {
       query.studentEmail = decodedToken.email;
-    } else if (
-      profile.role !== "admin" &&
-      profile.role !== "teacher"
-    ) {
+    } else if (profile.role !== "admin" && profile.role !== "teacher") {
       return jsonError("Forbidden", 403);
     }
 
@@ -101,18 +102,21 @@ export async function GET(request) {
 
     const totalPages = Math.ceil(total / limit);
 
-    return jsonSuccess({
-      exceptions,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages,
-        hasNextPage: page < totalPages,
+    // FIX: Moved 200 outside the object — it's the second argument to jsonSuccess, not a property
+    return jsonSuccess(
+      {
+        exceptions,
+        pagination: {
+          total,
+          page,
+          limit,
+          totalPages,
+          hasNextPage: page < totalPages,
+        },
       },
-    });
+      200
+    );
   } catch (error) {
-    console.error("Exception fetch error:", error);
     return jsonError("Internal server error", 500);
   }
 }
