@@ -62,7 +62,7 @@ export default function RegisterPage() {
     return () => {
       cancelled = true;
     };
-  }, [registeredUser]);
+  }, [registeredUser, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

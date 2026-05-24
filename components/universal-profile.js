@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { analytics, db } from "@/lib/firebaseConfig";
 import { logEvent } from "firebase/analytics";
 import { updateProfile } from "firebase/auth";
@@ -314,7 +314,7 @@ export default function UniversalProfile() {
     return avatarUrl || user?.photoURL || null;
   };
 
-  const getUserInitials = (name) => {
+  const getUserInitials = useCallback((name) => {
     if (!name) return "U";
 
     return name
@@ -323,9 +323,9 @@ export default function UniversalProfile() {
       .join("")
       .toUpperCase()
       .slice(0, 2);
-  };
+  }, []);
 
-  const getUserDisplayName = () => {
+  const getUserDisplayName = useCallback(() => {
     if (formData.displayName) {
       return formData.displayName;
     }
@@ -335,9 +335,9 @@ export default function UniversalProfile() {
     }
 
     return "User";
-  };
+  }, [formData.displayName, user?.email]);
 
-  const getMemberSince = () => {
+  const getMemberSince = useCallback(() => {
     if (!userData?.createdAt) {
       return "Just joined";
     }
@@ -350,7 +350,7 @@ export default function UniversalProfile() {
       month: "long",
       year: "numeric",
     }).format(date);
-  };
+  }, [userData?.createdAt]);
 
   const getRoleConfig = () => {
     const configs = {

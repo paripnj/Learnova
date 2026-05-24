@@ -1,5 +1,5 @@
 import { toast } from "react-hot-toast";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Navbar } from "./Navbar";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
@@ -83,64 +83,65 @@ const TeacherDashboard = () => {
     lateToday: 0,
     averageAttendance: 0,
   });
-const fetchTodayAttendanceStats = async () => {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
 
-    const attendanceQuery = query(
-      collection(db, "attendance_records"),
-      where("date", "==", today),
-    );
+  const fetchTodayAttendanceStats = useCallback(async () => {
+    try {
+      const today = new Date().toISOString().slice(0, 10);
 
-    const snapshot = await getDocs(attendanceQuery);
+      const attendanceQuery = query(
+        collection(db, "attendance_records"),
+        where("date", "==", today),
+      );
 
-    const records = snapshot.docs.map((doc) =>
-      doc.data(),
-    );
+      const snapshot = await getDocs(attendanceQuery);
 
-    const presentToday = records.filter(
-      (r) =>
-        r.status === "present" ||
-        !r.status,
-    ).length;
+      const records = snapshot.docs.map((doc) =>
+        doc.data(),
+      );
 
-    const lateToday = records.filter(
-      (r) => r.status === "late",
-    ).length;
+      const presentToday = records.filter(
+        (r) =>
+          r.status === "present" ||
+          !r.status,
+      ).length;
 
-    const absentToday = records.filter(
-      (r) => r.status === "absent",
-    ).length;
+      const lateToday = records.filter(
+        (r) => r.status === "late",
+      ).length;
 
-    const totalStudents = records.length;
+      const absentToday = records.filter(
+        (r) => r.status === "absent",
+      ).length;
 
-    const averageAttendance =
-      totalStudents > 0
-        ? Math.round(
-            ((presentToday + lateToday) /
-              totalStudents) *
-              1000,
-          ) / 10
-        : 0;
+      const totalStudents = records.length;
 
-    setAttendanceStats({
-      totalStudents,
-      presentToday,
-      absentToday,
-      lateToday,
-      averageAttendance,
-    });
-  } catch (err) {
-    console.error(
-      "Failed to fetch today's attendance stats:",
-      err,
-    );
-  }
-};
+      const averageAttendance =
+        totalStudents > 0
+          ? Math.round(
+              ((presentToday + lateToday) /
+                totalStudents) *
+                1000,
+            ) / 10
+          : 0;
 
-useEffect(() => {
-  fetchTodayAttendanceStats();
-}, []);
+      setAttendanceStats({
+        totalStudents,
+        presentToday,
+        absentToday,
+        lateToday,
+        averageAttendance,
+      });
+    } catch (err) {
+      console.error(
+        "Failed to fetch today's attendance stats:",
+        err,
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTodayAttendanceStats();
+  }, [fetchTodayAttendanceStats]);
     
   const [todayClasses, setTodayClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
