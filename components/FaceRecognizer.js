@@ -258,9 +258,12 @@ export default function FaceRecognizer({ authUser }) {
     lastDetectionTime.current = now;
 
     const canvas = canvasRef.current;
+    
+    // Fix: Use getBoundingClientRect to match responsive Tailwind w-full scaling on mobile screens
+    const rect = video.getBoundingClientRect();
     const displaySize = {
-      width: video.videoWidth || 720,
-      height: video.videoHeight || 500,
+      width: rect.width || video.videoWidth || 720,
+      height: rect.height || video.videoHeight || 500,
     };
 
     canvas.width = displaySize.width;
