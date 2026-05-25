@@ -252,6 +252,71 @@ const CodeBlock = ({ language, code }) => {
 };
 
 // ---------------------------------------------------------------------------
+// Markdown rendering components
+// ---------------------------------------------------------------------------
+const markdownComponents = {
+  code({ inline, className, children, ...props }) {
+    const match = /language-(\w+)/.exec(className || "");
+    const language = match ? match[1] : "";
+    const code = String(children).replace(/\n$/, "");
+    if (!inline && (match || code.includes("\n"))) {
+      return <CodeBlock language={language} code={code} />;
+    }
+    return (
+      <code
+        className="px-1.5 py-0.5 rounded bg-purple-950/40 text-purple-300 font-mono text-[0.8em]"
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
+  p({ children }) {
+    return <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>;
+  },
+  strong({ children }) {
+    return <strong className="font-semibold text-inherit">{children}</strong>;
+  },
+  ul({ children }) {
+    return <ul className="list-disc list-inside mb-2 space-y-0.5">{children}</ul>;
+  },
+  ol({ children }) {
+    return <ol className="list-decimal list-inside mb-2 space-y-0.5">{children}</ol>;
+  },
+  li({ children }) {
+    return <li className="leading-relaxed">{children}</li>;
+  },
+  a({ href, children }) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
+      >
+        {children}
+      </a>
+    );
+  },
+  h1({ children }) {
+    return <h1 className="text-base font-bold mb-2 mt-1">{children}</h1>;
+  },
+  h2({ children }) {
+    return <h2 className="text-sm font-bold mb-1.5 mt-1">{children}</h2>;
+  },
+  h3({ children }) {
+    return <h3 className="text-sm font-semibold mb-1 mt-1">{children}</h3>;
+  },
+  blockquote({ children }) {
+    return (
+      <blockquote className="border-l-2 border-purple-500/50 pl-3 italic text-gray-400 my-2">
+        {children}
+      </blockquote>
+    );
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Bot response logic
 // ---------------------------------------------------------------------------
 async function generateBotResponse(userMessage, currentCategory, idToken, updatedMessages = []) {
@@ -288,19 +353,17 @@ async function generateBotResponse(userMessage, currentCategory, idToken, update
   try {
     const headers = { "Content-Type": "application/json" };
     if (idToken) headers["Authorization"] = `Bearer ${idToken}`;
-    
     const response = await fetch("/api/groq", {
       method: "POST",
       headers,
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         messages: updatedMessages.map(msg => ({
           role: msg.isBot ? "assistant" : "user",
           content: msg.text
-        })), 
-        category: currentCategory 
+        })),
+        category: currentCategory
       }),
     });
-
     if (response.ok) {
       const payload = await response.json();
       return payload?.data?.message || payload?.message;
@@ -333,7 +396,7 @@ async function saveConversation(userText, botText) {
 export default function LearnovaChatbot() {
   const { user } = useAuthContext();
   const { theme, resolvedTheme, setTheme } = useTheme();
-  
+
   const isDarkMode = resolvedTheme === "dark" || theme === "dark";
 
   const getContextWelcomeMessage = useCallback(() => {
@@ -347,7 +410,7 @@ export default function LearnovaChatbot() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState(() => [INITIAL_MESSAGE]);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [currentCategory, setCurrentCategory] = useState("general");
@@ -471,8 +534,8 @@ export default function LearnovaChatbot() {
   };
 
   const t = {
-    bg: isDarkMode 
-      ? "bg-gray-950/90 backdrop-blur-xl text-white" 
+    bg: isDarkMode
+      ? "bg-gray-950/90 backdrop-blur-xl text-white"
       : "bg-white/95 backdrop-blur-xl text-gray-900",
     header: "bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 border-b border-white/10 shadow-lg shadow-purple-950/20",
     border: isDarkMode ? "border-white/10" : "border-gray-200/80",
@@ -499,7 +562,7 @@ export default function LearnovaChatbot() {
   // ---------------------------------------------------------------------------
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-[9999]">
         <button
           onClick={() => setIsOpen(true)}
           className="relative bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white p-4 rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300 group"
@@ -522,11 +585,10 @@ export default function LearnovaChatbot() {
   // ---------------------------------------------------------------------------
   return (
     <div
-      className={`fixed z-50 flex flex-col ${t.bg} shadow-2xl transition-all duration-300 border ${t.border} ${
-        isMinimized 
-          ? "bottom-6 right-6 w-72 h-16 overflow-hidden rounded-xl" 
-          : "bottom-0 right-0 w-full h-full rounded-none sm:bottom-6 sm:right-6 sm:w-96 sm:h-[660px] sm:rounded-xl"
-      }`}
+      className={`fixed z-[9999] flex flex-col ${t.bg} shadow-2xl transition-all duration-300 border ${t.border} ${isMinimized
+        ? "bottom-6 right-6 w-72 h-16 overflow-hidden rounded-xl"
+        : "bottom-4 right-4 w-[calc(100vw-2rem)] max-w-sm h-[min(660px,calc(100dvh-5rem))] rounded-xl sm:bottom-6 sm:right-6 sm:w-96"
+        }`}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className={`${t.header} text-white p-4 rounded-t-xl flex items-center justify-between shrink-0`}>
@@ -571,9 +633,8 @@ export default function LearnovaChatbot() {
                   <button
                     key={cat.id}
                     onClick={() => setCurrentCategory(cat.id)}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${
-                      currentCategory === cat.id ? t.catBtnActive : t.catBtn
-                    }`}
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${currentCategory === cat.id ? t.catBtnActive : t.catBtn
+                      }`}
                   >
                     <IconComponent size={14} />
                     <span>{cat.label}</span>
