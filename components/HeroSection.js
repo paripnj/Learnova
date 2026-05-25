@@ -20,7 +20,7 @@ export default function HeroSection({ selectedRole }) {
         </div>
 
         {/* Heading */}
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-white">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight text-foreground">
           Transforming Education
         </h1>
 
