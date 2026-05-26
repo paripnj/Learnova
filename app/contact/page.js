@@ -276,10 +276,10 @@ export default function Contact() {
 
         <div className="px-4 sm:px-6 lg:px-8 pb-20">
           <div className="max-w-7xl mx-auto">
-            <div className="grid lg:grid-cols-2 gap-16">
+            <div className="grid lg:grid-cols-2 gap-16 items-start">
               {/* Contact Form */}
-              <div className="relative">
-                <div className="bg-card backdrop-blur-xl rounded-3xl p-8 border border-border hover:border-accent/30 transition-border duration-500">
+              <div className="relative h-full">
+                <div className="bg-card backdrop-blur-xl rounded-3xl p-8 border border-border hover:border-accent/30 transition-colors duration-500 h-full">
                   <div className="mb-8">
                     <h2 className="text-3xl font-bold text-foreground mb-4">
                       Send us a Message
@@ -291,8 +291,8 @@ export default function Contact() {
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
+                    <div className="grid md:grid-cols-2 gap-6 items-start">
+                      <div className="space-y-2 flex flex-col">
                         <label htmlFor="contact-name" className="block text-foreground font-medium">
                           Full Name *
                         </label>
@@ -305,14 +305,16 @@ export default function Contact() {
                           placeholder="Enter your full name"
                           className="w-full p-4 bg-background border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent/50 transition-colors duration-300"
                         />
-                        {errors.name && (
-                          <p className="text-red-400 text-sm mt-1">
-                            {errors.name}
-                          </p>
-                        )}
+                        <div className="min-h-5">
+                          {errors.name && (
+                            <p className="text-red-400 text-sm mt-1">
+                              {errors.name}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex flex-col">
                         <label htmlFor="contact-email" className="block text-foreground font-medium">
                           Email Address *
                         </label>
@@ -325,11 +327,13 @@ export default function Contact() {
                           placeholder="you@example.com"
                           className="w-full p-4 bg-background border border-border rounded-xl text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent/50 transition-colors duration-300"
                         />
-                        {errors.email && (
-                          <p className="text-red-400 text-sm mt-1">
-                            {errors.email}
-                          </p>
-                        )}
+                        <div className="min-h-5">
+                          {errors.email && (
+                            <p className="text-red-400 text-sm mt-1">
+                              {errors.email}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -423,22 +427,22 @@ export default function Contact() {
                     {contactInfo.map((info, index) => (
                       <div key={index} className="group flex items-start gap-4">
                         <div
-                          className={`w-12 h-12 bg-gradient-to-br ${info.gradient} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
+                          className={`w-12 h-12 shrink-0 bg-gradient-to-br ${info.gradient} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}
                         >
                           <info.icon className="w-6 h-6 text-foreground" />
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <p className="text-muted-foreground text-sm">{info.label}</p>
 
                           {info.href ? (
                             <a
                               href={info.href}
-                              className="text-foreground text-lg font-medium hover:text-accent transition-colors duration-300"
+                              className="text-foreground text-lg font-medium hover:text-accent transition-colors duration-300 break-words"
                             >
                               {info.value}
                             </a>
                           ) : (
-                            <p className="text-foreground text-lg font-medium">
+                            <p className="text-foreground text-lg font-medium break-words">
                               {info.value}
                             </p>
                           )}
@@ -460,21 +464,21 @@ export default function Contact() {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-4">
                       <span className="text-muted-foreground">Monday - Friday</span>
-                      <span className="text-foreground font-medium">
+                      <span className="text-foreground font-medium text-right whitespace-nowrap">
                         9:00 AM - 6:00 PM
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-4">
                       <span className="text-muted-foreground">Saturday</span>
-                      <span className="text-foreground font-medium">
+                      <span className="text-foreground font-medium text-right whitespace-nowrap">
                         10:00 AM - 4:00 PM
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center gap-4">
                       <span className="text-muted-foreground">Sunday</span>
-                      <span className="text-muted-foreground">Closed</span>
+                      <span className="text-muted-foreground text-right whitespace-nowrap">Closed</span>
                     </div>
                   </div>
 
@@ -493,7 +497,7 @@ export default function Contact() {
                     Follow Us
                   </h3>
 
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 flex-wrap">
                     {socialLinks.map((social, index) => (
                       <Link
                         key={index}

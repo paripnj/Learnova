@@ -40,8 +40,10 @@ import {
   Globe,
   Calendar as CalendarIcon,
   User,
-  LogOut,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
+import ExportDropdown from "@/components/ui/ExportDropdown";
+import { exportToCSV, exportToPDF } from "@/utils/exportUtils";
 import { Navbar } from "./Navbar";
 import dynamic from "next/dynamic";
 import ChartSkeleton from "@/components/ui/ChartSkeleton";
@@ -65,6 +67,43 @@ const InstituteDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = (format) => {
+    setIsExporting(true);
+    setTimeout(() => {
+      try {
+        const exportData = attendanceRequests.map(req => ({
+          Date: selectedDate,
+          'Student Name': req.student,
+          'Roll No': req.rollNo,
+          'Class': req.class,
+          'Status': req.status,
+        }));
+        
+        const filename = `institute_attendance_requests_${selectedDate}`;
+        
+        if (format === 'csv') {
+          exportToCSV(exportData, filename);
+        } else {
+          const columns = [
+            { header: 'Date', dataKey: 'Date' },
+            { header: 'Student', dataKey: 'Student Name' },
+            { header: 'Roll No', dataKey: 'Roll No' },
+            { header: 'Class', dataKey: 'Class' },
+            { header: 'Status', dataKey: 'Status' }
+          ];
+          exportToPDF(exportData, columns, `Institute Attendance Requests - ${selectedDate}`, filename);
+        }
+        toast.success(`Successfully exported as ${format.toUpperCase()}`);
+      } catch (err) {
+        console.error("Export failed:", err);
+        toast.error("Failed to export report");
+      } finally {
+        setIsExporting(false);
+      }
+    }, 500);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setInitialLoading(false), 1200);
@@ -389,15 +428,19 @@ const InstituteDashboard = () => {
             </div>
           </button>
 
-          <button className="group bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-500/30 rounded-xl p-4 transition-all duration-500 ease-in-out hover:scale-102">
-            <div className="flex items-center space-x-3">
+          <ExportDropdown
+            onExport={handleExport}
+            isExporting={isExporting}
+            className="group w-full bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-500/30 rounded-xl p-4 transition-all duration-500 ease-in-out hover:scale-102 flex justify-start items-center"
+          >
+            <div className="flex items-center space-x-3 text-left">
               <Download className="w-5 h-5 text-green-400 group-hover:text-green-300" />
-              <div className="text-left">
+              <div>
                 <div className="font-medium text-green-300">Export Reports</div>
                 <div className="text-sm text-gray-400">CSV/PDF formats</div>
               </div>
             </div>
-          </button>
+          </ExportDropdown>
 
           <button
             onClick={() => setActiveTab("settings")}
@@ -702,13 +745,12 @@ const InstituteDashboard = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="px-3 py-2 bg-black/40 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent backdrop-blur-xl"
           />
-          <button
-            disabled={isLoading}
+          <ExportDropdown
+            onExport={handleExport}
+            isExporting={isExporting}
+            label="Export"
             className="bg-gradient-to-r from-green-600 to-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl flex items-center shadow-lg hover:shadow-2xl transition-all duration-300 ease-in-out transform hover:scale-105 hover:brightness-110"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export
-          </button>
+          />
         </div>
       </div>
 

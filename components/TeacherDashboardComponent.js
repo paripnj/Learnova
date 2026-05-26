@@ -54,6 +54,8 @@ import {
   Loader2,
   XCircle,
 } from "lucide-react";
+import ExportDropdown from "@/components/ui/ExportDropdown";
+import { exportToCSV, exportToPDF } from "@/utils/exportUtils";
 import dynamic from "next/dynamic";
 import ChartSkeleton from "@/components/ui/ChartSkeleton";
 import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
@@ -176,6 +178,41 @@ const TeacherDashboard = () => {
 
   const [weeklySchedule, setWeeklySchedule] = useState({});
   const [studentAttendanceData, setStudentAttendanceData] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = (format) => {
+    setIsExporting(true);
+    setTimeout(() => {
+      try {
+        const exportData = studentAttendanceData.map(s => ({
+          Date: new Date().toLocaleDateString(),
+          'Student Name': s.name,
+          'Roll No': s.rollNo,
+          Status: s.status,
+        }));
+        
+        const filename = `attendance_report_${selectedClass || 'all'}_${new Date().toISOString().split('T')[0]}`;
+        
+        if (format === 'csv') {
+          exportToCSV(exportData, filename);
+        } else {
+          const columns = [
+            { header: 'Date', dataKey: 'Date' },
+            { header: 'Student Name', dataKey: 'Student Name' },
+            { header: 'Roll No', dataKey: 'Roll No' },
+            { header: 'Status', dataKey: 'Status' }
+          ];
+          exportToPDF(exportData, columns, `Attendance Report - ${selectedClass || 'All'}`, filename);
+        }
+        toast.success(`Successfully exported as ${format.toUpperCase()}`);
+      } catch (error) {
+        console.error("Export failed:", error);
+        toast.error("Failed to export report");
+      } finally {
+        setIsExporting(false);
+      }
+    }, 500);
+  };
 
   // Fetch Teacher Profile & Schedule
   useEffect(() => {
@@ -351,10 +388,10 @@ const TeacherDashboard = () => {
 
   // Fetch exception requests
   useEffect(() => {
-    const fetchExceptionRequests = async () => {
+    const fetchExceptionRequests = async (isBackground = false) => {
       if (!user) return;
 
-      setIsLoadingRequests(true);
+      if (!isBackground) setIsLoadingRequests(true);
       setRequestsError(null);
 
       try {
@@ -392,14 +429,14 @@ const TeacherDashboard = () => {
       } catch (error) {
         setRequestsError(error.message);
       } finally {
-        setIsLoadingRequests(false);
+        if (!isBackground) setIsLoadingRequests(false);
       }
     };
 
     fetchExceptionRequests();
 
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchExceptionRequests, 30000);
+    const interval = setInterval(() => fetchExceptionRequests(true), 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -838,15 +875,19 @@ const TeacherDashboard = () => {
             <h2 className="text-xl font-bold text-white mb-6">Quick Actions</h2>
 
             <div className="space-y-3">
-              <button className="w-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border border-purple-500/30 text-white p-3 rounded-xl transition-colors text-left">
-                <div className="flex items-center space-x-3">
+              <ExportDropdown
+                onExport={handleExport}
+                isExporting={isExporting}
+                className="w-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border border-purple-500/30 text-white p-3 rounded-xl transition-colors text-left flex justify-start items-center"
+              >
+                <div className="flex items-center space-x-3 text-left">
                   <Download className="w-5 h-5 text-purple-400" />
                   <div>
-                    <div className="font-medium">Export Reports</div>
+                    <div className="font-medium text-white">Export Reports</div>
                     <div className="text-sm text-gray-400">CSV/PDF formats</div>
                   </div>
                 </div>
-              </button>
+              </ExportDropdown>
 
               <button className="w-full bg-gradient-to-r from-green-600/20 to-emerald-600/20 hover:from-green-600/30 hover:to-emerald-600/30 border border-green-500/30 text-white p-3 rounded-xl transition-colors text-left">
                 <div className="flex items-center space-x-3">
@@ -1037,7 +1078,7 @@ const TeacherDashboard = () => {
                   {user?.photoURL ? (
                     <Image
                       src={user.photoURL}
-                      alt="Profile"
+                      alt={`${user?.displayName || user?.email?.split("@")[0] || "Teacher"} profile photo`}
                       width={48}
                       height={48}
                       className="w-12 h-12 rounded-xl border border-accent/30 object-cover"

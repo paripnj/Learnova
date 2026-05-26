@@ -2,16 +2,16 @@ import { NextResponse } from "next/server";
 import { connectDb } from "@/lib/mongodb";
 import { requireAuth, requireRole } from "@/lib/rbac";
 import { withErrorHandler } from "@/lib/error-handler";
-import { AppError, ValidationError, NotFoundError } from "@/lib/errors";
-import { put } from "@vercel/blob";
-import { randomUUID } from "crypto";
-import { z } from "zod";
+import {
+  extractImageFileFromFormData,
+  fetchAndValidateImage,
+  getImageResponseHeaders,
+  getUserImageFromDb,
+  updateUserImageInDb,
+  uploadAvatarToBlob,
+} from "@/lib/images/imagesService";
 
 export const dynamic = "force-dynamic";
-
-const getImageSchema = z.object({
-  id: z.string().min(1, "Missing user id parameter"),
-});
 
 export const GET = withErrorHandler(async (request) => {
     const { searchParams } = new URL(request.url);
@@ -75,72 +75,42 @@ export const GET = withErrorHandler(async (request) => {
       throw new ValidationError("Image URL must use HTTPS");
     }
 
-    const allowedImageHosts = [
-      "public.blob.vercel-storage.com",
-      "lh3.googleusercontent.com",
-    ];
+  await requireAuth(request);
 
-    const hostOk = allowedImageHosts.some(
-      (h) => parsedUrl.hostname === h || parsedUrl.hostname.endsWith("." + h)
-    );
+  const imageUrl = await getUserImageFromDb({ id });
+  const { imageBuffer, contentType } = await fetchAndValidateImage(imageUrl);
 
-    if (!hostOk) {
-      throw new ValidationError("Image source not allowed");
-    }
-
-    const controller = new AbortController();
-    const IMAGE_FETCH_TIMEOUT_MS = 10000;
-    const timeoutId = setTimeout(() => controller.abort(), IMAGE_FETCH_TIMEOUT_MS);
-
-    const startTime = Date.now();
-    let imageResponse;
-    try {
-      imageResponse = await fetch(user.image, { signal: controller.signal });
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    const elapsed = Date.now() - startTime;
-    if (elapsed > 2000) {
-      console.warn(`[Slow Image Fetch] ${elapsed}ms for ${user.image}`);
-    }
-
-    if (!imageResponse.ok) {
-      throw new AppError("Failed to fetch image", 502);
-    }
-
-    const contentType = imageResponse.headers.get("content-type") || "";
-    if (!contentType.startsWith("image/")) {
-      throw new AppError("Response is not an image", 502);
-    }
-
-    const contentLength = parseInt(imageResponse.headers.get("content-length") || "0", 10);
-    const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
-    if (contentLength > MAX_IMAGE_SIZE) {
-      throw new AppError("Image too large", 413);
-    }
-
-    return new NextResponse(imageResponse.body, {
-      status: 200,
-      headers: {
-        "Content-Type": contentType,
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "X-Content-Type-Options": "nosniff",
-      },
-    });
+  return new NextResponse(imageBuffer, {
+    status: 200,
+    headers: getImageResponseHeaders(contentType),
+  });
 });
 
 export const POST = withErrorHandler(async (request) => {
-    const decodedToken = await requireAuth(request);
+  const decodedToken = await requireAuth(request);
 
-    const formData = await request.formData();
-    const file = formData.get("file");
+  const formData = await request.formData();
+  const file = extractImageFileFromFormData(formData);
 
+  const { blobUrl } = await uploadAvatarToBlob({
+    file,
+    uid: decodedToken.uid,
+  });
+
+  await updateUserImageInDb({
+    firebaseUid: decodedToken.uid,
+    imageUrl: blobUrl,
+  });
     const rawFaceDescriptor = formData.get("faceDescriptor");
     let faceDescriptor = null;
     if (rawFaceDescriptor) {
+      if (typeof rawFaceDescriptor !== "string" || rawFaceDescriptor.length > 20000) {
+        throw new ValidationError("Face descriptor payload too large");
+      }
       try {
-        faceDescriptor = JSON.parse(rawFaceDescriptor);
+        const parsed = JSON.parse(rawFaceDescriptor);
+        const faceDescriptorSchema = z.array(z.number()).length(128);
+        faceDescriptor = faceDescriptorSchema.parse(parsed);
       } catch {
         throw new ValidationError("Invalid face descriptor format");
       }
@@ -184,5 +154,5 @@ export const POST = withErrorHandler(async (request) => {
       { $set: updatePayload }
     );
 
-    return NextResponse.json({ success: true, url: blob.url });
+  return NextResponse.json({ success: true, url: blobUrl });
 });

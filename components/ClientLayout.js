@@ -7,6 +7,10 @@ import { useIdleTimeout } from "@/hooks/useIdleTimeout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ShortcutsModal from "@/components/ShortcutsModal";
 import SearchModal from "@/components/SearchModal";
+import { useAuth } from "@/hooks/useAuth";
+import { db } from "@/lib/firebaseConfig";
+import { doc, updateDoc } from "firebase/firestore";
+import { toast } from "react-hot-toast";
 
 const InstallPWA = dynamic(() => import("@/components/InstallPWA"), {
   ssr: false,
@@ -21,6 +25,7 @@ const LearnovaChatbot = dynamic(() => import("@/components/ChatBot"), {
 export default function ClientLayout() {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const { user, userProfile } = useAuth();
 
   const handleSearch = useCallback(() => {
     setIsSearchOpen(true);
@@ -49,6 +54,134 @@ export default function ClientLayout() {
       window.removeEventListener("learnova:open-search", handleOpenSearch);
     };
   }, []);
+
+  // Central Consistency Streak & Firestore Synchronization Hook
+  useEffect(() => {
+    if (typeof window === "undefined" || !user) return;
+
+    const syncStreak = async () => {
+      try {
+        const today = new Date();
+        const offset = today.getTimezoneOffset();
+        const localToday = new Date(today.getTime() - (offset * 60 * 1000));
+        const todayDateStr = localToday.toISOString().split("T")[0];
+
+        // 1. Get client-side localStorage values
+        let clientStreak = parseInt(localStorage.getItem("learnova_site_streak") || "0", 10);
+        let clientLastVisit = localStorage.getItem("learnova_site_last_visit") || "";
+        let clientHistory = [];
+        try {
+          const historyStr = localStorage.getItem("learnova_site_visit_history");
+          clientHistory = historyStr ? JSON.parse(historyStr) : [];
+        } catch (_) {
+          clientHistory = [];
+        }
+        if (!Array.isArray(clientHistory)) clientHistory = [];
+
+        // 2. Fetch Firestore profile variables
+        const firestoreStreak = userProfile?.siteStreak || 0;
+        const firestoreLastVisit = userProfile?.siteLastVisit || "";
+        const firestoreHistory = userProfile?.siteVisitHistory || [];
+
+        let currentStreak = clientStreak;
+        let lastVisit = clientLastVisit;
+        let history = [...clientHistory];
+
+        // 3. Bidirectional Sync & Restore Logic
+        // Case A: Device has no streak records, but Firestore does! (New device login / local storage cleared)
+        if (!lastVisit && firestoreLastVisit) {
+          currentStreak = firestoreStreak;
+          lastVisit = firestoreLastVisit;
+          history = Array.isArray(firestoreHistory) ? [...firestoreHistory] : [];
+          
+          localStorage.setItem("learnova_site_streak", currentStreak.toString());
+          localStorage.setItem("learnova_site_last_visit", lastVisit);
+          localStorage.setItem("learnova_site_visit_history", JSON.stringify(history));
+          console.log(`[streak-sync] Restored streak of ${currentStreak} days from Firestore profile.`);
+        }
+
+        // Case B: Process today's check-in if last visit is different
+        if (lastVisit !== todayDateStr) {
+          let updatedStreak = currentStreak;
+          
+          if (!lastVisit) {
+            // New streak initialization
+            updatedStreak = 1;
+          } else {
+            const lastVisitDate = new Date(lastVisit);
+            const currentVisitDate = new Date(todayDateStr);
+            const diffTime = currentVisitDate.getTime() - lastVisitDate.getTime();
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 1) {
+              // Consecutive check-in
+              updatedStreak += 1;
+            } else if (diffDays > 1) {
+              // Streak broken
+              updatedStreak = 1;
+            }
+          }
+
+          if (!history.includes(todayDateStr)) {
+            history.push(todayDateStr);
+            if (history.length > 30) {
+              history = history.slice(-30);
+            }
+          }
+
+          currentStreak = updatedStreak;
+          lastVisit = todayDateStr;
+
+          // Save to LocalStorage
+          localStorage.setItem("learnova_site_streak", currentStreak.toString());
+          localStorage.setItem("learnova_site_last_visit", lastVisit);
+          localStorage.setItem("learnova_site_visit_history", JSON.stringify(history));
+
+          // Trigger a beautiful notification
+          if (currentStreak > 1) {
+            toast.success(`🔥 Blazing visit streak! ${currentStreak} consecutive days. Keep it up!`, {
+              icon: "🔥",
+              duration: 5000,
+            });
+          } else {
+            toast.success("🌱 Daily streak started! Log in tomorrow to protect your flame.", {
+              icon: "🌱",
+              duration: 5000,
+            });
+          }
+        } else {
+          // Same day visit, ensure today is in history
+          if (!history.includes(todayDateStr)) {
+            history.push(todayDateStr);
+            localStorage.setItem("learnova_site_visit_history", JSON.stringify(history));
+          }
+        }
+
+        // 4. Update Firestore if the local variables differ from Firestore to keep them perfectly in sync
+        const needsSync = 
+          currentStreak !== firestoreStreak ||
+          lastVisit !== firestoreLastVisit ||
+          JSON.stringify(history) !== JSON.stringify(firestoreHistory);
+
+        if (needsSync && user.uid) {
+          const userDocRef = doc(db, "users", user.uid);
+          await updateDoc(userDocRef, {
+            siteStreak: currentStreak,
+            siteLastVisit: lastVisit,
+            siteVisitHistory: history,
+          });
+          console.log(`[streak-sync] Synced streak of ${currentStreak} days to Firestore.`);
+        }
+
+      } catch (error) {
+        console.error("[streak-sync] Sync error:", error);
+      }
+    };
+
+    // Delay slightly to allow auth profile variables to load properly
+    const timer = setTimeout(syncStreak, 1500);
+    return () => clearTimeout(timer);
+  }, [user, userProfile]);
 
   useKeyboardShortcuts({
     onSearch: handleSearch,

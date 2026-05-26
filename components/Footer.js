@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -13,8 +14,12 @@ import {
 import { CONTACT_INFO } from "../constants/contact";
 
 
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+
+
+
   const quickLinks = [
     { label: "Home", href: "/" },
     { label: "Productivity", href: "/productivity" },
@@ -23,7 +28,9 @@ export default function Footer() {
     { label: "Register", href: "/register" },
     { label: "Contributors", href: "/contributors" },
     { label: "Terms & Conditions", href: "/terms" },
+    { label: "Streaks", href: "/streaks" },
   ];
+
 
   const sectionLinks = [
     { label: "Mission", href: "/#mission" },

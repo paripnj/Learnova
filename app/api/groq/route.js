@@ -1,15 +1,15 @@
 import { jsonSuccess, jsonError } from "@/lib/api-response";
-import { authenticateRequest, parseJSON } from "@/lib/error-handler";
-import { AppError, ValidationError } from "@/lib/errors";
-import { z } from "zod";
+import { authenticateRequest, parseJSON, withErrorHandler } from "@/lib/error-handler";
+import { validateGroqBody, callGroq } from "@/lib/ai/groq";
 
 export const dynamic = "force-dynamic";
-
-const GROQ_API_URL =
-  "https://api.groq.com/openai/v1/chat/completions";
+export const runtime = "nodejs";
 
 import { checkRateLimit } from "@/lib/rateLimit";
 import { detectInjection, sanitizeMessage, buildSecureMessages } from "@/utils/promptGuard";
+import { GROQ_API_URL } from "@/lib/ai/groq";
+
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const groqSchema = z.object({
   message: z.string().optional(),
@@ -40,7 +40,7 @@ const groqSchema = z.object({
     return message && message.trim().length <= 2000;
   },
   {
-    message: "Message too long",
+    message: "Message too long (max 2000 characters)",
   }
 );
 
@@ -90,118 +90,33 @@ export async function POST(request) {
     // Sanitize user message
     const sanitizedMessage = sanitizeMessage(trimmedMessage);
 
-    // API key
-    const apiKey =
-      process.env.GROQ_API_KEY;
+  // Rate limiting
+  const rateLimitResult = await checkRateLimit(decodedToken.uid);
+  if (!rateLimitResult.allowed) {
+    return jsonError("Too many requests. Please try again later.", 429);
+  }
 
-    if (!apiKey) {
-      throw new AppError(
-        "Groq API key is not configured",
-        500
-      );
-    }
+  // Parse body
+  const body = await parseJSON(request, 1024 * 10);
 
-    // Timeout setup
-    const timeoutMs = parseInt(
-      process.env.GROQ_TIMEOUT || "30000",
-      10
-    );
+  const validation = validateGroqBody(body);
 
-    const controller =
-      new AbortController();
+  let rawMessage = "";
 
-    const timeoutId = setTimeout(
-      () => controller.abort(),
-      timeoutMs
-    );
+  rawMessage = validation.trimmedMessage;
 
-    let response;
-
-    try {
-      response = await fetch(
-        GROQ_API_URL,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            "Content-Type":
-              "application/json",
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: "llama-3.1-8b-instant",
-            messages: buildSecureMessages(
-              sanitizedMessage,
-              "You are Nova, the friendly AI assistant for Learnova - a Smart Student Engagement Ecosystem.",
-              history
-            ),
-            max_tokens: 400,
-            temperature: 0.7,
-          }),
-        }
-      );
-    } finally {
-      clearTimeout(timeoutId);
-    }
-
-    // Handle API errors
-    if (!response.ok) {
-      const errorData =
-        await response
-          .json()
-          .catch(() => ({}));
-
-      return jsonError(
-        errorData?.error?.message ||
-          "Groq API request failed",
-        response.status
-      );
-    }
-
-    // Parse response
-    const data = await response.json();
-
-    const content =
-      data?.choices?.[0]?.message
-        ?.content;
-
-    if (!content) {
-      return jsonError(
-        "AI generated an empty response",
-        502
-      );
-    }
-
-    console.log(
-      `[nova-ai-quota-tracker] Success for ${decodedToken.uid}`
-    );
-
-    return jsonSuccess({
-      message: content,
-    });
-  } catch (error) {
-    if (error instanceof AppError) {
-      return jsonError(
-        error.message,
-        error.statusCode
-      );
-    }
+  const trimmedMessage = rawMessage.trim();
 
     if (error.name === "AbortError") {
       return jsonError(
-        "Gateway Timeout: AI response took too long.",
+        "Gateway Timeout: Groq did not respond in time.",
         504
       );
     }
 
-    console.error(
-      "Groq API route error:",
-      error
-    );
+  // Sanitize and call Groq
+  const sanitizedMessage = sanitizeMessage(trimmedMessage);
+  const content = await callGroq(sanitizedMessage);
 
-    return jsonError(
-      "Internal server error",
-      500
-    );
-  }
-}
+  return jsonSuccess({ message: content });
+});

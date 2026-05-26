@@ -99,6 +99,8 @@ setRecentActivity(mapped);
   }, [user]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     const fetchGamification = async () => {
       try {
         if (!user) return;
@@ -111,6 +113,7 @@ setRecentActivity(mapped);
             headers: {
               Authorization: `Bearer ${token}`,
             },
+            signal: controller.signal,
           }
         );
 
@@ -119,6 +122,7 @@ setRecentActivity(mapped);
           setGamificationData(data);
         }
       } catch (err) {
+        if (err.name === "AbortError") return;
         console.error(
           "Failed to load gamification data",
           err
@@ -127,6 +131,10 @@ setRecentActivity(mapped);
     };
 
     fetchGamification();
+
+    return () => {
+      controller.abort();
+    };
   }, [user]);
 
   // Attendance stats
@@ -349,7 +357,7 @@ setRecentActivity(mapped);
                   {user?.photoURL ? (
                     <Image
                       src={user.photoURL}
-                      alt="Profile"
+                      alt={`${user?.displayName || user?.email?.split("@")[0] || "Student"} profile photo`}
                       width={48}
                       height={48}
                       className="w-12 h-12 rounded-xl border border-accent/30 object-cover"
@@ -405,10 +413,12 @@ setRecentActivity(mapped);
         </div>
       </div>
 
-      {/* MAIN CONTENT CONTINUES */}
-
-      {/* Keep all your remaining JSX exactly same below this */}
-
+      {/* Attendance Heatmap */}
+      <div className="relative z-10 mt-8">
+        <div className="max-w-7xl mx-auto px-6">
+          <AttendanceHeatmap />
+        </div>
+      </div>
     </div>
   );
 };
