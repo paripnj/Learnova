@@ -371,7 +371,7 @@ export function Navbar() {
 
                       <Bell className="h-5 w-5" />
                       {unreadCount > 0 && <span className="absolute top-2 right-2 bg-red-500 rounded-full h-2 w-2" />}
-                    </button>
+                    </motion.button>
 
                     {isNotificationOpen && (
                       <div className="absolute right-0 mt-3 w-72 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl z-[80] overflow-hidden">
@@ -396,16 +396,6 @@ export function Navbar() {
                         </div>
                       </div>
                     )}
-                      <Bell className="h-[18px] w-[18px]" />
-                      <AnimatePresence>
-                        {unreadCount > 0 && (
-                          <motion.span
-                            initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-                            className="absolute top-1.5 right-1.5 bg-red-500 rounded-full h-2 w-2 ring-2 ring-white dark:ring-zinc-950"
-                          />
-                        )}
-                      </AnimatePresence>
-                    </motion.button>
 
                     <AnimatePresence>
                       {isNotificationOpen && (
@@ -477,7 +467,6 @@ export function Navbar() {
                       </div>
 
                       <ChevronDown className="h-4 w-4 text-zinc-400" />
-                    </button>
 
                     {isDropdownOpen && (
                       <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-xl py-1 z-[80]">
