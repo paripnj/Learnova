@@ -427,7 +427,9 @@ const LearnovaChatbot = () => {
 
   const INITIAL_MESSAGE = {
     id: 1,
-    text: "Hello! I'm Nova, your AI assistant for Learnova — the Smart Student Engagement Ecosystem! I can help you with attendance management, smart activities, security features, analytics, and more. What would you like to know?",
+    text: user 
+      ? "Hello! I'm Nova, your AI assistant for Learnova — the Smart Student Engagement Ecosystem! I can help you with attendance management, smart activities, security features, analytics, and more. What would you like to know?"
+      : "Hello! I'm Nova, your AI assistant for Learnova. **Please sign in** to ask me questions about attendance management, smart activities, security features, and analytics.",
     isBot: true,
     timestamp: new Date(),
   };
@@ -702,7 +704,7 @@ const LearnovaChatbot = () => {
             ))}
 
             {/* Suggested questions — shown only with the welcome message */}
-            {messages.length === 1 && (
+            {user && messages.length === 1 && (
               <div className="space-y-2">
                 <p className={`text-xs font-medium text-center ${isDarkMode ? "text-gray-400" : "text-gray-500"}`}>
                   💡 Popular questions about{" "}
@@ -776,32 +778,48 @@ const LearnovaChatbot = () => {
             </div>
           </div>
 
-          {/* ── Input ─────────────────────────────────────────────────────── */}
+         {/* ── Input ─────────────────────────────────────────────────────── */}
           <div className={`p-4 border-t ${t.border} shrink-0`}>
-            <div className="flex items-end gap-3">
-              <textarea
-                ref={textareaRef}
-                value={inputMessage}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                disabled={isLoading}
-                placeholder="Ask Nova about Learnova…"
-                rows={1}
-                className={`flex-1 px-4 py-3 border rounded-xl resize-none focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm ${t.input}`}
-                style={{ minHeight: "48px", maxHeight: "120px" }}
-              />
-              <button
-                onClick={() => handleSendMessage()}
-                disabled={!inputMessage.trim() || isLoading}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shrink-0"
-                aria-label="Send message"
-              >
-                <Send size={18} />
-              </button>
-            </div>
-            <p className={`text-xs mt-2 text-center ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
-              Powered by Nova AI · Shift + Enter for new line
-            </p>
+            {user ? (
+              <>
+                <div className="flex items-end gap-3">
+                  <textarea
+                    ref={textareaRef}
+                    value={inputMessage}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyDown}
+                    disabled={isLoading}
+                    placeholder="Ask Nova about Learnova…"
+                    rows={1}
+                    className={`flex-1 px-4 py-3 border rounded-xl resize-none focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm ${t.input}`}
+                    style={{ minHeight: "48px", maxHeight: "120px" }}
+                  />
+                  <button
+                    onClick={() => handleSendMessage()}
+                    disabled={!inputMessage.trim() || isLoading}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shrink-0"
+                    aria-label="Send message"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
+                <p className={`text-xs mt-2 text-center ${isDarkMode ? "text-gray-500" : "text-gray-400"}`}>
+                  Powered by Nova AI · Shift + Enter for new line
+                </p>
+              </>
+            ) : (
+              <div className={`flex flex-col items-center justify-center p-3 rounded-xl border border-dashed ${isDarkMode ? "border-purple-500/30 bg-purple-500/5" : "border-purple-400/30 bg-purple-50"}`}>
+                <p className={`text-sm font-medium mb-2 ${isDarkMode ? "text-purple-300" : "text-purple-700"}`}>
+                  Sign in to chat with Nova
+                </p>
+                <a 
+                  href="/auth" 
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-xs font-bold rounded-lg hover:shadow-md transition-all"
+                >
+                  Go to Sign In
+                </a>
+              </div>
+            )}
           </div>
         </>
       )}
