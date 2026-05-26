@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 import { checkRateLimit } from "@/lib/rateLimit";
 import { detectInjection, sanitizeMessage, buildSecureMessages } from "@/utils/promptGuard";
+import { GROQ_API_URL } from "@/lib/ai/groq";
 
 const groqSchema = z.object({
   message: z.string().optional(),
