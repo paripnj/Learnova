@@ -86,7 +86,11 @@ describe("attendance sync route", () => {
       collection: jest.fn(() => collectionRef),
     });
 
-    const response = await POST({});
+    const response = await POST({
+      headers: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -144,7 +148,11 @@ describe("attendance sync route", () => {
       collection: jest.fn(() => collectionRef),
     });
 
-    const response = await POST({});
+    const response = await POST({
+      headers: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    });
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
@@ -152,6 +160,111 @@ describe("attendance sync route", () => {
       error: "User profile not found for attendance sync.",
     });
     expect(runTransaction).not.toHaveBeenCalled();
+  });
+
+  test("rejects record and unsets from queue when userId mismatches or confidence is too low", async () => {
+    requireAuth.mockResolvedValue({
+      uid: "user-123",
+      email: "auth@example.com",
+      name: "Auth Name",
+    });
+
+    parseJSON.mockResolvedValue({
+      records: [
+        {
+          id: 10,
+          userId: "other-user-456", // Mismatched userId
+          confidenceScore: 0.85,
+          queuedAt: Date.now(),
+        },
+        {
+          id: 11,
+          userId: "user-123",
+          confidenceScore: 0.15, // Too low confidence score
+          queuedAt: Date.now(),
+        },
+      ],
+    });
+
+    getUserProfile.mockResolvedValue({
+      fullName: "Server Name",
+      email: "server@example.com",
+    });
+
+    getFirestore.mockReturnValue({
+      runTransaction: jest.fn(),
+      collection: jest.fn(),
+    });
+
+    const response = await POST({
+      headers: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      syncedIds: [],
+      rejectedIds: [10, 11],
+      warning: "Some records were not synced because they exceeded the 48-hour offline window. These records have been removed from your local queue.",
+    });
+  });
+
+  test("acknowledges duplicate records without awarding XP when attendance already exists in Firestore", async () => {
+    requireAuth.mockResolvedValue({
+      uid: "user-123",
+      email: "auth@example.com",
+    });
+
+    parseJSON.mockResolvedValue({
+      records: [
+        {
+          id: 5,
+          userId: "user-123",
+          confidenceScore: 85,
+          queuedAt: Date.now(),
+        },
+      ],
+    });
+
+    getUserProfile.mockResolvedValue({
+      fullName: "Server Name",
+      email: "server@example.com",
+    });
+
+    let transactionGet;
+    let transactionSet;
+
+    const docRef = {};
+    const collectionRef = {
+      doc: jest.fn(() => docRef),
+    };
+
+    getFirestore.mockReturnValue({
+      runTransaction: jest.fn(async (callback) => {
+        transactionGet = jest.fn().mockResolvedValue({ exists: true });
+        transactionSet = jest.fn();
+        return callback({ get: transactionGet, set: transactionSet });
+      }),
+      collection: jest.fn(() => collectionRef),
+    });
+
+    const response = await POST({
+      headers: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      syncedIds: [5],
+      rejectedIds: [],
+    });
+
+    expect(transactionGet).toHaveBeenCalledTimes(1);
+    expect(transactionSet).not.toHaveBeenCalled();
   });
 
   test("normalizes confidence scores into the valid range", () => {
