@@ -86,7 +86,11 @@ describe("attendance sync route", () => {
       collection: jest.fn(() => collectionRef),
     });
 
-    const response = await POST({});
+    const response = await POST({
+      headers: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    });
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -144,7 +148,11 @@ describe("attendance sync route", () => {
       collection: jest.fn(() => collectionRef),
     });
 
-    const response = await POST({});
+    const response = await POST({
+      headers: {
+        get: jest.fn().mockReturnValue(null),
+      },
+    });
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
