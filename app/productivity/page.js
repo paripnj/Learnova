@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { TimerSection } from "@/components/productivity/TimerSection";
+import { apiFetch } from "@/lib/apiClient";
 import { TaskSection } from "@/components/productivity/TaskSection";
 import { CalendarSection } from "@/components/productivity/CalendarSection";
 import { AgendaListSection } from "@/components/productivity/AgendaListSection";
@@ -151,13 +152,12 @@ export default function ProductivityPage() {
 
       try {
         const token = await user.getIdToken();
-        await fetch("/api/productivity", {
+        await apiFetch("/api/productivity", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ tasks: currentTasks, agendaItems: currentAgenda }),
+          body: { tasks: currentTasks, agendaItems: currentAgenda },
         });
       } catch (_) {
         // Offline or API error — localStorage already has the data
@@ -196,18 +196,13 @@ export default function ProductivityPage() {
 
       try {
         const token = await user.getIdToken();
-        const res = await fetch("/api/productivity", {
+        const data = await apiFetch("/api/productivity", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.tasks?.length > 0) setTasks(data.tasks);
-          if (data.agendaItems && Object.keys(data.agendaItems).length > 0) {
-            setAgendaItems(data.agendaItems);
-          }
-        } else {
-          throw new Error("API returned non-ok");
+        if (data.tasks?.length > 0) setTasks(data.tasks);
+        if (data.agendaItems && Object.keys(data.agendaItems).length > 0) {
+          setAgendaItems(data.agendaItems);
         }
       } catch (_) {
         try {
@@ -266,24 +261,20 @@ export default function ProductivityPage() {
       if (!user) return;
       try {
         const token = await user.getIdToken();
-        const res = await fetch("/api/productivity/session", {
+        const data = await apiFetch("/api/productivity/session", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
+          body: {
             duration,
             completedAt: new Date().toISOString(),
             type,
-          }),
+          },
         });
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.xpAwarded > 0) {
-            toast.success(`+${data.xpAwarded} XP earned!`);
-          }
+        if (data.xpAwarded > 0) {
+          toast.success(`+${data.xpAwarded} XP earned!`);
         }
       } catch (_) {
         // Offline — session not recorded, but timer continues
